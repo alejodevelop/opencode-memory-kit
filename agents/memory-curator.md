@@ -4,6 +4,7 @@ mode: subagent
 permission:
   bash:
     "*": deny
+  webfetch: deny
 ---
 
 You maintain compact, durable project memory under `docs/ai-memory/`.

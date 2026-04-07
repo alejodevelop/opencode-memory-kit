@@ -1,8 +1,11 @@
-# Project Memory Workflow
+# Project Instructions
 
-This repository starts intentionally minimal. The main project-specific behavior is a durable AI memory layer stored in `docs/ai-memory/`.
+<!-- opencode-memory-kit:start -->
+## Project Memory Workflow
 
-## Persistent Memory
+This project uses a durable AI memory layer stored in `docs/ai-memory/`.
+
+### Persistent Memory
 
 - Use `docs/ai-memory/INDEX.md` as the entry point.
 - For explicit manual lookup, use `/recall-feature <query>`.
@@ -15,7 +18,7 @@ This repository starts intentionally minimal. The main project-specific behavior
 - Prefer `docs/ai-memory/decisions.md` for durable cross-feature decisions and constraints.
 - Prefer `docs/ai-memory/troubleshooting.md` for recurring errors, exact messages, root causes, and fixes.
 
-## Updating Memory
+### Updating Memory
 
 - After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
 - The memory update should capture only long-lived project knowledge:
@@ -25,8 +28,9 @@ This repository starts intentionally minimal. The main project-specific behavior
   - reusable debugging knowledge
 - Do not store raw conversation logs, temporary speculation, or large diff narration.
 
-## Memory Quality Bar
+### Memory Quality Bar
 
 - Keep notes concise and searchable.
 - Include exact file paths and exact error strings when useful.
 - Update existing notes in place instead of creating duplicates.
+<!-- opencode-memory-kit:end -->

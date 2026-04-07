@@ -1,10 +1,11 @@
 ---
 description: Recalls relevant durable project memory for a task or feature
 mode: subagent
-tools:
-  write: false
-  edit: false
-  bash: false
+permission:
+  edit: deny
+  bash:
+    "*": deny
+  webfetch: deny
 ---
 
 You search `docs/ai-memory/` and return only the durable context relevant to the caller's query.
