@@ -48,7 +48,7 @@ $assets = @(
         Path = "agents\memory-curator.md"
         Content = @'
 ---
-description: Curates durable project memory after a feature is finished
+description: Curates durable project memory after a feature changes or during a review pass
 mode: subagent
 permission:
   bash:
@@ -58,16 +58,35 @@ permission:
 
 You maintain compact, durable project memory under `docs/ai-memory/`.
 
-Your job is to convert completed work into reusable context without bloating future prompts.
+Your job is to keep active memory aligned with the current truth of the codebase without bloating future prompts.
 
 Workflow:
 1. Read `docs/ai-memory/INDEX.md`, `docs/ai-memory/decisions.md`, `docs/ai-memory/troubleshooting.md`, and `docs/ai-memory/features/README.md`.
-2. Use the command-provided feature slug and git summary as the primary source of scope.
-3. Normalize the slug to kebab-case, or infer one from the finished work if needed.
-4. Read only the changed project files needed to understand the durable outcome.
-5. Create or update `docs/ai-memory/features/<slug>.md`.
-6. Update `docs/ai-memory/INDEX.md` so the feature list stays current.
-7. Update shared notes only when the information will matter outside this single feature.
+2. Use the command-provided scope, git summary, changed files, and any explicit approval instructions as the primary source of scope.
+3. Identify the memory notes affected by that scope. Start with the target slug when provided, then expand only to related notes that mention changed files, modules, feature names, or exact error strings.
+4. Read only the project files and memory notes needed to decide whether each note should be kept, rewritten, trimmed, or proposed for deletion.
+5. Apply high-confidence non-destructive updates immediately:
+   - create missing notes when durable context now exists
+   - rewrite stale bullets or sections when behavior changed
+   - trim sections that no longer apply while preserving the useful parts of the note
+   - update `docs/ai-memory/INDEX.md` so it reflects the active notes
+6. Update shared notes only when the information will matter outside a single feature.
+7. Never delete a feature note, decision entry, troubleshooting entry, or index entry unless the user explicitly approves that deletion in the current conversation.
+8. When deletion candidates exist without approval, stop before deleting them and return a brief `Deletion review` list with stable item IDs, exact file or section targets, reasons, and the recommended action.
+9. When the user explicitly approves specific deletions, remove only those approved items and update `docs/ai-memory/INDEX.md` plus any cross-references that point to them.
+
+Decision rules:
+- `keep` - the note is still accurate and useful.
+- `rewrite` - the note is still useful but some facts changed.
+- `trim` - only part of the note is stale.
+- `delete` - the note or entry no longer describes current durable knowledge and adds no ongoing value.
+
+Delete only when at least one of these is true:
+- the feature or behavior was removed
+- the note was absorbed by another canonical note
+- the referenced files or modules no longer exist or are no longer relevant
+- a shared decision or troubleshooting item no longer applies to the current codebase
+- the remaining content is purely historical and Git history is a better home for it
 
 Capture only durable information:
 - implemented behavior or constraints
@@ -81,6 +100,7 @@ Avoid:
 - verbose diff narration
 - temporary commands or tool output
 - duplicate notes
+- historical archive notes inside the active memory tree
 
 File conventions:
 - keep notes concise and searchable
@@ -89,6 +109,7 @@ File conventions:
 - use exact error strings in backticks
 - use kebab-case filenames for feature notes
 - update existing sections instead of appending near-duplicates
+- keep `docs/ai-memory/` focused on the current truth of the repo
 
 Feature note template:
 
@@ -111,6 +132,12 @@ Feature note template:
 ## Follow-ups
 - Only if a real, durable constraint remains.
 
+Output expectations:
+- Briefly list the notes you updated automatically.
+- If deletions are pending, emit a `Deletion review` section with numbered items and exact targets.
+- When deletions are pending, end with one short reply hint such as `Reply with delete 1` or `keep all`.
+- Keep the result concise and explicit about what still needs user approval.
+
 If the prompt does not provide a clean slug, infer one. If the durable intent is still ambiguous after reading the relevant files, ask one short clarifying question.
 '@
     },
@@ -129,9 +156,11 @@ permission:
 
 You search `docs/ai-memory/` and return only the durable context relevant to the caller's query.
 
+Treat the active memory tree as the current truth of the repo, not as a historical archive.
+
 Workflow:
 1. Start with `docs/ai-memory/INDEX.md`.
-2. Use `grep` on `docs/ai-memory/**/*.md` for the query terms, feature names, file paths, modules, tags, and exact error strings.
+2. Use `grep` on the active `docs/ai-memory/**/*.md` files for the query terms, feature names, file paths, modules, tags, and exact error strings.
 3. Read only the matching notes.
 4. Synthesize the smallest useful answer for the caller.
 
@@ -147,6 +176,7 @@ Rules:
 - If there are no relevant matches, say so clearly.
 - Do not restate full notes when a short synthesis is enough.
 - Prefer exact file paths and exact error strings in backticks.
+- Do not reconstruct removed memory from Git or old chat context.
 - Do not modify any files.
 '@
     },
@@ -154,7 +184,7 @@ Rules:
         Path = "commands\remember-feature.md"
         Content = @'
 ---
-description: Save durable memory for a finished feature
+description: Save and refresh durable memory for a finished feature
 agent: memory-curator
 subtask: true
 ---
@@ -163,15 +193,19 @@ Record durable project memory for the finished feature `$ARGUMENTS`.
 
 Goal:
 - Save the smallest useful long-term context for future sessions.
+- Keep related memory aligned with the current truth of the codebase.
 - Do not capture raw chat history or temporary implementation noise.
 
 Inputs:
-- Feature slug: `$ARGUMENTS`
+- Feature slug or scope: `$ARGUMENTS`
 - Git status:
 !`git status --short`
 - Changed files:
 !`git diff --name-only`
 !`git diff --cached --name-only`
+- Deleted files:
+!`git diff --name-only --diff-filter=D`
+!`git diff --cached --name-only --diff-filter=D`
 - Diff summary:
 !`git diff --stat`
 !`git diff --cached --stat`
@@ -181,13 +215,18 @@ Inputs:
 Tasks:
 1. If `docs/ai-memory/` does not exist, explain that project memory has not been bootstrapped yet and tell the user to run the bootstrap script from this kit before retrying.
 2. Read the existing memory files in `docs/ai-memory/`.
-3. Read only the changed source files needed to understand the durable outcome.
-4. Normalize `$ARGUMENTS` to a kebab-case slug, or infer one from the finished work if missing.
-5. Create or update `docs/ai-memory/features/<normalized-slug>.md`.
-6. Update `docs/ai-memory/INDEX.md`.
-7. Update `docs/ai-memory/decisions.md` only for cross-feature decisions.
-8. Update `docs/ai-memory/troubleshooting.md` only for reusable debugging knowledge.
-9. If there is no meaningful durable information yet, say so instead of inventing memory.
+3. Use the current diff, changed files, deleted files, and the provided slug to identify related memory notes that may now be stale.
+4. Read only the changed source files and affected memory notes needed to understand the durable outcome.
+5. Normalize `$ARGUMENTS` to a kebab-case slug, or infer one from the finished work if missing.
+6. Create or update `docs/ai-memory/features/<normalized-slug>.md`.
+7. Rewrite or trim other affected memory notes when the current change invalidates stale details.
+8. Update `docs/ai-memory/INDEX.md` so it lists only the active feature notes.
+9. Update `docs/ai-memory/decisions.md` only for cross-feature decisions that still apply.
+10. Update `docs/ai-memory/troubleshooting.md` only for reusable debugging knowledge that still applies.
+11. Apply high-confidence rewrites and trims automatically.
+12. If a note or entry should be removed from active memory, do not delete it yet unless the user explicitly approved that deletion in the current conversation. Instead, return a short `Deletion review` with item IDs, exact targets, and reasons.
+13. If the user explicitly approved specific deletions in the current conversation, delete only those approved items and update `docs/ai-memory/INDEX.md` plus any broken references.
+14. If there is no meaningful durable information yet, say so instead of inventing memory.
 '@
     },
     @{
@@ -205,15 +244,61 @@ Tasks:
 1. If `docs/ai-memory/` does not exist, explain that project memory has not been bootstrapped yet and tell the user to run the bootstrap script from this kit.
 2. Start from `docs/ai-memory/INDEX.md`.
 3. If `$ARGUMENTS` is empty, briefly summarize what project memory exists and what kinds of queries are supported.
-4. Search `docs/ai-memory/**/*.md` for relevant feature names, file paths, modules, tags, decisions, and exact error strings related to `$ARGUMENTS`.
-5. Read only the matching notes.
-6. Return a concise synthesis with:
+4. Treat `docs/ai-memory/` as the active memory tree for the current truth of the repo.
+5. Search `docs/ai-memory/**/*.md` for relevant feature names, file paths, modules, tags, decisions, and exact error strings related to `$ARGUMENTS`.
+6. Read only the matching notes.
+7. Return a concise synthesis with:
    - relevant behavior
    - important files
    - decisions or constraints
    - reusable errors and fixes
-7. If nothing relevant exists yet, say that clearly.
-8. Do not update memory.
+8. If nothing relevant exists yet, say that clearly.
+9. Do not update memory.
+'@
+    },
+    @{
+        Path = "commands\review-memory.md"
+        Content = @'
+---
+description: Review and prune stale project memory
+agent: memory-curator
+subtask: true
+---
+
+Review the active project memory for `$ARGUMENTS`.
+
+Goal:
+- Find stale memory caused by refactors, removals, or drift.
+- Automatically rewrite or trim notes that can be safely refreshed.
+- Require a brief user review before deleting active memory.
+
+Inputs:
+- Review scope: `$ARGUMENTS`
+- Git status:
+!`git status --short`
+- Changed files:
+!`git diff --name-only`
+!`git diff --cached --name-only`
+- Deleted files:
+!`git diff --name-only --diff-filter=D`
+!`git diff --cached --name-only --diff-filter=D`
+- Diff summary:
+!`git diff --stat`
+!`git diff --cached --stat`
+- Recent commits:
+!`git log --oneline -10`
+
+Tasks:
+1. If `docs/ai-memory/` does not exist, explain that project memory has not been bootstrapped yet and tell the user to run the bootstrap script from this kit.
+2. Treat `$ARGUMENTS` as an optional scope. If it is empty, review the memory touched by recent changes first, then expand only if needed.
+3. Read `docs/ai-memory/INDEX.md`, `docs/ai-memory/decisions.md`, `docs/ai-memory/troubleshooting.md`, and only the relevant feature notes.
+4. Scan the notes that match the scope, changed files, deleted files, referenced modules, slugs, or likely stale signals.
+5. Classify each candidate as `keep`, `rewrite`, `trim`, or `delete`.
+6. Apply high-confidence rewrites and trims immediately.
+7. Update `docs/ai-memory/INDEX.md` whenever active feature notes change.
+8. If delete candidates exist and the user has not explicitly approved them in the current conversation, return a brief `Deletion review` with item IDs, exact targets, reasons, and recommended deletes.
+9. If the user explicitly approved specific item IDs or exact targets in the current conversation, delete only those approved items and update `docs/ai-memory/INDEX.md` plus any cross-references.
+10. Keep the report concise: automatic updates first, pending deletion review second, gaps last.
 '@
     },
     @{
@@ -282,6 +367,7 @@ Get-ChildItem -File -Recurse $docsTemplateRoot | ForEach-Object {
     if ($exists -and -not $Force) {
         Write-Host "Skipped $relativePath"
     }
+
     else {
         Copy-Item $sourcePath $destination -Force
         if ($exists) {
@@ -300,6 +386,7 @@ Write-Host "  1. Open the project in OpenCode"
 Write-Host "  2. Build as usual"
 Write-Host "  3. Run /remember-feature <slug> when a feature is accepted"
 Write-Host "  4. Run /recall-feature <query> in future sessions"
+Write-Host "  5. Run /review-memory [scope] after large refactors or removals"
 '@
     },
     @{
@@ -384,6 +471,7 @@ printf '%s\n' "  1. Open the project in OpenCode"
 printf '%s\n' "  2. Build as usual"
 printf '%s\n' "  3. Run /remember-feature <slug> when a feature is accepted"
 printf '%s\n' "  4. Run /recall-feature <query> in future sessions"
+printf '%s\n' "  5. Run /review-memory [scope] after large refactors or removals"
 '@
     },
     @{
@@ -412,6 +500,10 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 ### Updating Memory
 
 - After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
+- After a large refactor, feature removal, or cleanup pass, review stale memory with `/review-memory [scope]`.
+- `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
+- `/remember-feature` and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
+- Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
   - important files or modules touched
@@ -424,6 +516,8 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - Keep notes concise and searchable.
 - Include exact file paths and exact error strings when useful.
 - Update existing notes in place instead of creating duplicates.
+- Remove obsolete sections once they stop being true.
+- Use Git history for old context instead of keeping dead notes under `docs/ai-memory/`.
 <!-- opencode-memory-kit:end -->
 '@
     },
@@ -451,6 +545,10 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 ### Updating Memory
 
 - After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
+- After a large refactor, feature removal, or cleanup pass, review stale memory with `/review-memory [scope]`.
+- `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
+- `/remember-feature` and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
+- Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
   - important files or modules touched
@@ -463,6 +561,8 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - Keep notes concise and searchable.
 - Include exact file paths and exact error strings when useful.
 - Update existing notes in place instead of creating duplicates.
+- Remove obsolete sections once they stop being true.
+- Use Git history for old context instead of keeping dead notes under `docs/ai-memory/`.
 <!-- opencode-memory-kit:end -->
 '@
     },
@@ -473,12 +573,16 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 This directory stores compact, durable context for future OpenCode sessions.
 
+It should describe the current truth of the repo. Historical context lives in Git.
+
 ## How to use this memory
 
 - Start here when a task depends on prior project work.
 - For manual lookup in OpenCode, run `/recall-feature <query>`.
+- For cleanup after refactors or removals, run `/review-memory [scope]`.
 - Search this directory by feature name, file path, module name, tag, or exact error text.
 - Read only the matching notes.
+- Rewrite or trim stale notes in place, and review deletions before removing obsolete notes from the active tree.
 
 ## Shared notes
 
@@ -503,6 +607,8 @@ Cross-feature decisions and constraints that future work should preserve.
 - Add only decisions that affect more than one future task or module.
 - Prefer one short subsection per decision.
 - Link affected files when possible.
+- Rewrite or remove entries when the decision no longer constrains the current codebase.
+- Do not keep superseded decisions here just for history; Git already preserves that context.
 
 ## Entries
 
@@ -521,6 +627,8 @@ Reusable debugging knowledge for this project.
 - Record only issues that are likely to recur.
 - Prefer exact symptoms in backticks.
 - Include root cause and fix.
+- Rewrite or remove entries when the symptom, root cause, or fix no longer matches the current codebase.
+- Do not keep solved-once historical notes that no longer help future debugging.
 
 ## Entries
 
@@ -538,6 +646,15 @@ Create one file per accepted feature using a kebab-case slug.
 
 - The feature changed durable project behavior.
 - Future work will benefit from remembering touched files, constraints, or fixes.
+
+## Lifecycle
+
+- Treat each feature note as the canonical record for the current state of that feature.
+- Rewrite the note in place when behavior changes.
+- Trim sections that became stale while keeping the useful parts.
+- Delete the file when the feature is removed, absorbed, or no longer carries durable value.
+- Do not archive obsolete feature notes under `docs/ai-memory/`; rely on Git history instead.
+- Deletions require a brief review before removal.
 
 ## Recommended structure
 
@@ -566,5 +683,6 @@ Write-Host "  - agents/"
 Write-Host "  - commands/"
 Write-Host "  - opencode-memory-kit/"
 Write-Host ""
+Write-Host "Commands now available: /remember-feature, /recall-feature, and /review-memory"
 Write-Host "Bootstrap a new repo with:"
 Write-Host ('  powershell -ExecutionPolicy Bypass -File "{0}" -Target .' -f $bootstrapPath)

@@ -19,6 +19,10 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 ### Updating Memory
 
 - After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
+- After a large refactor, feature removal, or cleanup pass, review stale memory with `/review-memory [scope]`.
+- `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
+- `/remember-feature` and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
+- Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
   - important files or modules touched
@@ -31,4 +35,6 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - Keep notes concise and searchable.
 - Include exact file paths and exact error strings when useful.
 - Update existing notes in place instead of creating duplicates.
+- Remove obsolete sections once they stop being true.
+- Use Git history for old context instead of keeping dead notes under `docs/ai-memory/`.
 <!-- opencode-memory-kit:end -->

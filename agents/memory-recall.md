@@ -10,9 +10,11 @@ permission:
 
 You search `docs/ai-memory/` and return only the durable context relevant to the caller's query.
 
+Treat the active memory tree as the current truth of the repo, not as a historical archive.
+
 Workflow:
 1. Start with `docs/ai-memory/INDEX.md`.
-2. Use `grep` on `docs/ai-memory/**/*.md` for the query terms, feature names, file paths, modules, tags, and exact error strings.
+2. Use `grep` on the active `docs/ai-memory/**/*.md` files for the query terms, feature names, file paths, modules, tags, and exact error strings.
 3. Read only the matching notes.
 4. Synthesize the smallest useful answer for the caller.
 
@@ -28,4 +30,5 @@ Rules:
 - If there are no relevant matches, say so clearly.
 - Do not restate full notes when a short synthesis is enough.
 - Prefer exact file paths and exact error strings in backticks.
+- Do not reconstruct removed memory from Git or old chat context.
 - Do not modify any files.

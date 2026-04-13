@@ -52,7 +52,9 @@ Get-ChildItem -File -Recurse (Join-Path $repoRoot "templates") | ForEach-Object 
     Copy-ManagedFile -Source $_.FullName -Destination $destination -ForceCopy:$Force
 }
 
-Get-ChildItem -File -Recurse (Join-Path $repoRoot "scripts") | ForEach-Object {
+Get-ChildItem -File -Recurse (Join-Path $repoRoot "scripts") | Where-Object {
+    $_.FullName -notmatch "[\\/]__pycache__[\\/]" -and $_.Extension -ne ".pyc"
+} | ForEach-Object {
     $relativePath = $_.FullName.Substring($repoRoot.Length + 1)
     $destination = Join-Path $kitHome $relativePath
     Copy-ManagedFile -Source $_.FullName -Destination $destination -ForceCopy:$Force
@@ -60,6 +62,7 @@ Get-ChildItem -File -Recurse (Join-Path $repoRoot "scripts") | ForEach-Object {
 
 Write-Host ""
 Write-Host "OpenCode memory kit installed under $ConfigDir"
-Write-Host "Commands now available: /remember-feature and /recall-feature"
+Write-Host "Commands now available: /remember-feature, /recall-feature, and /review-memory"
 Write-Host "Bootstrap new repos with:"
-Write-Host "  powershell -ExecutionPolicy Bypass -File \"$kitHome\scripts\bootstrap-project.ps1\" -Target ."
+$bootstrapPath = Join-Path $kitHome "scripts\bootstrap-project.ps1"
+Write-Host ('  powershell -ExecutionPolicy Bypass -File "{0}" -Target .' -f $bootstrapPath)

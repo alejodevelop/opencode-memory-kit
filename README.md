@@ -17,6 +17,7 @@ The goal is simple:
 
 - `/remember-feature <slug>`
 - `/recall-feature <query>`
+- `/review-memory <scope>`
 - `memory-curator` subagent
 - `memory-recall` subagent
 
@@ -49,7 +50,7 @@ Use the default OpenCode directories. Do not override `OPENCODE_CONFIG_DIR` for 
 
 1. Install the kit once.
 2. Bootstrap each new repo once.
-3. Use `/remember-feature` and `/recall-feature` during normal work.
+3. Use `/remember-feature`, `/recall-feature`, and `/review-memory` during normal work.
 
 PowerShell install:
 
@@ -68,9 +69,10 @@ Typical usage:
 ```text
 /remember-feature auth-flow
 /recall-feature auth
+/review-memory auth
 ```
 
-That is the whole daily flow.
+That is the core flow. Use `/review-memory` after large refactors, removals, or cleanup passes.
 
 ### One-command install from a public repo
 
@@ -129,6 +131,7 @@ This avoids clobbering existing project rules.
 2. Work normally with `plan` and `build`.
 3. When a feature is accepted, run `/remember-feature <slug>`.
 4. In later sessions, run `/recall-feature <query>`.
+5. After large refactors, removals, or cleanup passes, run `/review-memory [scope]`.
 
 Examples:
 
@@ -137,7 +140,18 @@ Examples:
 /remember-feature billing-webhook
 /recall-feature auth
 /recall-feature "TypeError fetch failed"
+/review-memory auth
+/review-memory "remove legacy billing"
 ```
+
+## Memory lifecycle
+
+- `docs/ai-memory/` is the active memory tree for the current truth of the repo.
+- `/remember-feature` auto-refreshes related notes when the latest change makes older details stale.
+- `/review-memory` is the broader cleanup pass for refactors, removals, and accumulated drift.
+- High-confidence rewrites and trims can be applied automatically.
+- Deletions require a brief review before anything is removed from the active memory tree.
+- Git history is the archive for old context; obsolete notes should not stay in `docs/ai-memory/`.
 
 ## Design choices
 
@@ -145,11 +159,12 @@ Examples:
 - Project memory stays local to each repo.
 - Memory is lazy-loaded through `AGENTS.md` and `docs/ai-memory/INDEX.md`.
 - The stored notes are short, searchable, and Git-tracked.
+- The active memory tree stays focused on current truth, while Git preserves history.
 
 ## Notes
 
 - `docs/ai-memory/` is intentionally not injected into OpenCode global instructions.
-- If you run `/remember-feature` or `/recall-feature` in a repo that has not been bootstrapped yet, the command will tell you what is missing.
+- If you run `/remember-feature`, `/recall-feature`, or `/review-memory` in a repo that has not been bootstrapped yet, the command will tell you what is missing.
 - Use `--force` with the bootstrap scripts only when you want to overwrite existing template files under `docs/ai-memory/`.
 
 ## Advanced usage

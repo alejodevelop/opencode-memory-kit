@@ -65,7 +65,7 @@ find "$repo_root/templates" -type f | sort | while IFS= read -r source_path; do
   copy_managed_file "$source_path" "$destination"
 done
 
-find "$repo_root/scripts" -type f | sort | while IFS= read -r source_path; do
+find "$repo_root/scripts" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' | sort | while IFS= read -r source_path; do
   relative_path=${source_path#"$repo_root/"}
   destination="$kit_home/$relative_path"
   copy_managed_file "$source_path" "$destination"
@@ -73,6 +73,6 @@ done
 
 printf '\n'
 printf '%s\n' "OpenCode memory kit installed under $config_dir"
-printf '%s\n' "Commands now available: /remember-feature and /recall-feature"
+printf '%s\n' "Commands now available: /remember-feature, /recall-feature, and /review-memory"
 printf '%s\n' "Bootstrap new repos with:"
 printf '%s\n' "  sh \"$kit_home/scripts/bootstrap-project.sh\" ."
