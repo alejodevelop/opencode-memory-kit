@@ -16,6 +16,7 @@ The goal is simple:
 
 ## What gets installed globally
 
+- `/sync-memory [scope]`
 - `/remember-feature <slug>`
 - `/recall-feature <query>`
 - `/review-memory <scope>`
@@ -23,6 +24,8 @@ The goal is simple:
 - `memory-recall` subagent
 
 These are reusable across projects.
+
+`/sync-memory` is the default memory checkpoint. It decides whether the current change needs a focused feature-note update, a broader stale-memory review, or no durable memory update.
 
 ## What gets created per project
 
@@ -54,7 +57,7 @@ Use the default OpenCode directories. Do not override `OPENCODE_CONFIG_DIR` for 
 1. Install the kit once.
 2. Bootstrap each new repo once.
 3. Work normally with `plan` and `build`, letting OpenCode delegate broader work to `explore` and `general`.
-4. Use `/remember-feature`, `/recall-feature`, and `/review-memory` during normal work.
+4. Use `/sync-memory` and `/recall-feature` during normal work, and keep `/remember-feature` plus `/review-memory` as manual override commands.
 
 PowerShell install:
 
@@ -71,12 +74,12 @@ powershell -ExecutionPolicy Bypass -File "$HOME\.config\opencode\opencode-memory
 Typical usage:
 
 ```text
-/remember-feature auth-flow
+/sync-memory auth-flow
 /recall-feature auth
-/review-memory auth
+/review-memory "remove legacy billing"
 ```
 
-That is the core memory flow. Use `/review-memory` after large refactors, removals, or cleanup passes.
+That is the default memory flow. Use `/remember-feature` when you want to force a focused feature-note refresh, and `/review-memory` when you want to force a broader cleanup pass.
 
 ### One-command install from a public repo
 
@@ -163,24 +166,38 @@ Safe rerun behavior:
 1. Bootstrap the repo once.
 2. Work normally with `plan` and `build`.
 3. Let OpenCode use `explore` for broad reading and `general` for multi-step execution so the main session stays compact.
-4. When a feature is accepted, run `/remember-feature <slug>`.
+4. After accepted work, and before commit or PR when durable behavior changed, run `/sync-memory [scope]`.
 5. In later sessions, run `/recall-feature <query>`.
-6. After large refactors, removals, or cleanup passes, run `/review-memory [scope]`.
+6. Use `/remember-feature <slug>` when you want to force a focused feature-note refresh.
+7. After large refactors, removals, or cleanup passes, use `/review-memory [scope]` when you want to force a broader stale-memory review.
 
 Examples:
 
 ```text
-/remember-feature auth-flow
+/sync-memory auth-flow
+/sync-memory
 /remember-feature billing-webhook
 /recall-feature auth
 /recall-feature "TypeError fetch failed"
-/review-memory auth
 /review-memory "remove legacy billing"
 ```
+
+## Default memory checkpoint
+
+Run `/sync-memory [scope]` after accepted work, before commit or PR when a change altered durable behavior, and after refactors or cleanup.
+
+It chooses one of three outcomes:
+
+- focused feature update
+- broader drift review
+- no durable memory update needed
+
+Use `/remember-feature` or `/review-memory` only when you want to force one of those paths manually.
 
 ## Memory lifecycle
 
 - `docs/ai-memory/` is the active memory tree for the current truth of the repo.
+- `/sync-memory` is the default checkpoint. It chooses between a feature update, a drift review, or a no-op.
 - `/remember-feature` auto-refreshes related notes when the latest change makes older details stale.
 - `/review-memory` is the broader cleanup pass for refactors, removals, and accumulated drift.
 - High-confidence rewrites and trims can be applied automatically.
@@ -201,7 +218,7 @@ Examples:
 
 - `docs/ai-memory/` is intentionally not injected into OpenCode global instructions.
 - Durable memory is for accepted repo truth, not temporary subagent handoffs.
-- If you run `/remember-feature`, `/recall-feature`, or `/review-memory` in a repo that has not been bootstrapped yet, the command will tell you what is missing.
+- If you run `/sync-memory`, `/remember-feature`, `/recall-feature`, or `/review-memory` in a repo that has not been bootstrapped yet, the command will tell you what is missing.
 - Rerunning bootstrap without `--force` is the normal upgrade path for existing repos.
 - Use `--force` with the bootstrap scripts only when you intentionally want to overwrite existing template files under `docs/ai-memory/`.
 

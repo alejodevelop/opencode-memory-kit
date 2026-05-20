@@ -61,20 +61,33 @@ You maintain compact, durable project memory under `docs/ai-memory/`.
 
 Your job is to keep active memory aligned with the current truth of the codebase without bloating future prompts.
 
+Operating modes:
+- `feature-update` - a cohesive feature or iteration changed durable behavior and should create or refresh one main feature note.
+- `drift-review` - refactors, renames, deletions, cleanup, or broader cross-note staleness are likely and the active memory tree should be reviewed.
+- `no-memory-needed` - the current diff does not change durable repo truth enough to justify memory edits.
+
+When the caller asks for a memory sync or checkpoint, classify into one of those modes before editing unless the command already provides an explicit workflow.
+
+Prefer `drift-review` when deleted files, renamed files, large refactors, or multi-area changes make stale notes likely.
+
+Prefer `no-memory-needed` when the diff is limited to formatting, comments, docs, snapshot churn, tests that do not change durable behavior, local-only config, or memory notes that already match current truth.
+
 Workflow:
-1. Read `docs/ai-memory/INDEX.md`, `docs/ai-memory/decisions.md`, `docs/ai-memory/troubleshooting.md`, and `docs/ai-memory/features/README.md`.
-2. Use the command-provided scope, git summary, changed files, and any explicit approval instructions as the primary source of scope.
-3. Identify the memory notes affected by that scope. Start with the target slug when provided, then expand only to related notes that mention changed files, modules, feature names, or exact error strings.
-4. Read only the project files and memory notes needed to decide whether each note should be kept, rewritten, trimmed, or proposed for deletion.
-5. Apply high-confidence non-destructive updates immediately:
+1. Use the command-provided scope, git summary, changed files, and any explicit approval instructions as the primary source of scope.
+2. If the caller asked for a memory sync or checkpoint and did not provide an explicit workflow, classify the work as `feature-update`, `drift-review`, or `no-memory-needed` before editing.
+3. If the chosen mode is `no-memory-needed`, do not modify any files. Return a concise reason and stop.
+4. Read `docs/ai-memory/INDEX.md`, `docs/ai-memory/decisions.md`, `docs/ai-memory/troubleshooting.md`, and `docs/ai-memory/features/README.md`.
+5. Identify the memory notes affected by that scope. Start with the target slug when provided, then expand only to related notes that mention changed files, modules, feature names, or exact error strings.
+6. Read only the project files and memory notes needed to decide whether each note should be kept, rewritten, trimmed, or proposed for deletion.
+7. Apply high-confidence non-destructive updates immediately:
    - create missing notes when durable context now exists
    - rewrite stale bullets or sections when behavior changed
    - trim sections that no longer apply while preserving the useful parts of the note
    - update `docs/ai-memory/INDEX.md` so it reflects the active notes
-6. Update shared notes only when the information will matter outside a single feature.
-7. Never delete a feature note, decision entry, troubleshooting entry, or index entry unless the user explicitly approves that deletion in the current conversation.
-8. When deletion candidates exist without approval, stop before deleting them and return a brief `Deletion review` list with stable item IDs, exact file or section targets, reasons, and the recommended action.
-9. When the user explicitly approves specific deletions, remove only those approved items and update `docs/ai-memory/INDEX.md` plus any cross-references that point to them.
+8. Update shared notes only when the information will matter outside a single feature.
+9. Never delete a feature note, decision entry, troubleshooting entry, or index entry unless the user explicitly approves that deletion in the current conversation.
+10. When deletion candidates exist without approval, stop before deleting them and return a brief `Deletion review` list with stable item IDs, exact file or section targets, reasons, and the recommended action.
+11. When the user explicitly approves specific deletions, remove only those approved items and update `docs/ai-memory/INDEX.md` plus any cross-references that point to them.
 
 Decision rules:
 - `keep` - the note is still accurate and useful.
@@ -134,9 +147,11 @@ Feature note template:
 - Only if a real, durable constraint remains.
 
 Output expectations:
+- When the caller asked for a memory sync or checkpoint, start with `Mode`.
 - Briefly list the notes you updated automatically.
 - If deletions are pending, emit a `Deletion review` section with numbered items and exact targets.
 - When deletions are pending, end with one short reply hint such as `Reply with delete 1` or `keep all`.
+- When no durable memory update is needed, say so explicitly and keep the result short.
 - Keep the result concise and explicit about what still needs user approval.
 
 If the prompt does not provide a clean slug, infer one. If the durable intent is still ambiguous after reading the relevant files, ask one short clarifying question.
@@ -178,6 +193,62 @@ Rules:
 - Do not reconstruct removed memory from Git or old chat context.
 - Do not modify any files.
 EOF_AGENTS_MEMORY_RECALL_MD
+
+write_file "commands/sync-memory.md" <<'EOF_COMMANDS_SYNC_MEMORY_MD'
+---
+description: Sync durable project memory for recent changes
+agent: memory-curator
+subtask: true
+---
+
+Synchronize active project memory for recent changes and optional scope `$ARGUMENTS`.
+
+Goal:
+- Use one default memory checkpoint after accepted work, refactors, or cleanup.
+- Decide whether the current change needs a focused feature update, a broader stale-memory review, or no durable memory update.
+- Keep `docs/ai-memory/` aligned with the current truth of the repo without adding busywork.
+
+Inputs:
+- Optional scope or hint: `$ARGUMENTS`
+- Git status:
+!`git status --short`
+- Changed files with status:
+!`git diff --name-status`
+!`git diff --cached --name-status`
+- Changed files:
+!`git diff --name-only`
+!`git diff --cached --name-only`
+- Deleted files:
+!`git diff --name-only --diff-filter=D`
+!`git diff --cached --name-only --diff-filter=D`
+- Diff summary:
+!`git diff --stat`
+!`git diff --cached --stat`
+- Recent commits:
+!`git log --oneline -10`
+
+Tasks:
+1. If `docs/ai-memory/` does not exist, explain that project memory has not been bootstrapped yet and tell the user to run the bootstrap script from this kit before retrying.
+2. Treat this command as the default memory checkpoint after accepted work, before commit or PR when durable behavior changed, and after refactors, renames, or cleanup.
+3. Determine one mode before editing:
+   - `feature-update` - a cohesive feature or iteration changed durable behavior and should create or refresh one main feature note.
+   - `drift-review` - refactors, renames, deletions, cleanup, or broader cross-note staleness are likely and the active memory tree should be reviewed.
+   - `no-memory-needed` - the change does not alter durable repo truth enough to justify memory edits.
+4. Prefer `drift-review` when deleted files, renamed files, large refactors, or multi-area changes appear in the diff.
+5. Prefer `no-memory-needed` when changes are limited to formatting, comments, snapshot churn, docs, tests that do not change durable behavior, local-only config, or memory notes that already match current truth.
+6. If `$ARGUMENTS` gives a clear slug or scope, use it to sharpen the mode decision and note selection.
+7. If the mode is `no-memory-needed`, do not edit files. Return a concise reason and say whether a later accepted behavior change should use `/sync-memory`, `/remember-feature`, or `/review-memory`.
+8. If the mode is `feature-update`, follow the finished-feature workflow: normalize or infer a kebab-case slug, update the canonical feature note, refresh related notes, and update shared memory only when reusable cross-feature context changed.
+9. If the mode is `drift-review`, follow the stale-memory review workflow across notes touched by the changed files, deleted files, referenced modules, and likely stale signals.
+10. Apply high-confidence rewrites and trims automatically.
+11. Never delete active memory unless the user explicitly approved that deletion in the current conversation. Otherwise return a brief `Deletion review`.
+12. Keep the result concise with:
+   - `Mode`
+   - `Updated notes`
+   - `Deletion review`
+   - `Gaps`
+   - `Next step`
+EOF_COMMANDS_SYNC_MEMORY_MD
 
 write_file "commands/remember-feature.md" <<'EOF_COMMANDS_REMEMBER_FEATURE_MD'
 ---
@@ -443,9 +514,10 @@ Write-Host "Next steps:"
 Write-Host "  1. Open the project in OpenCode"
 Write-Host "  2. Work as usual with plan and build"
 Write-Host "  3. Let OpenCode delegate broad reading to explore and multi-step execution to general"
-Write-Host "  4. Run /remember-feature <slug> when a feature is accepted"
+Write-Host "  4. Run /sync-memory [scope] after accepted work or before commit or PR when durable behavior changed"
 Write-Host "  5. Run /recall-feature <query> in future sessions"
-Write-Host "  6. Run /review-memory [scope] after large refactors or removals"
+Write-Host "  6. Use /remember-feature <slug> to force a focused feature-note refresh"
+Write-Host "  7. Use /review-memory [scope] to force a broader stale-memory review"
 Write-Host "You can rerun this same bootstrap command later to refresh managed AGENTS.md instructions."
 Write-Host "Saved notes under docs/ai-memory/ stay intact unless you use --force."
 EOF_OPENCODE_MEMORY_KIT_SCRIPTS_BOOTSTRAP_PROJECT_PS1
@@ -631,9 +703,10 @@ printf '%s\n' "Next steps:"
 printf '%s\n' "  1. Open the project in OpenCode"
 printf '%s\n' "  2. Work as usual with plan and build"
 printf '%s\n' "  3. Let OpenCode delegate broad reading to explore and multi-step execution to general"
-printf '%s\n' "  4. Run /remember-feature <slug> when a feature is accepted"
+printf '%s\n' "  4. Run /sync-memory [scope] after accepted work or before commit or PR when durable behavior changed"
 printf '%s\n' "  5. Run /recall-feature <query> in future sessions"
-printf '%s\n' "  6. Run /review-memory [scope] after large refactors or removals"
+printf '%s\n' "  6. Use /remember-feature <slug> to force a focused feature-note refresh"
+printf '%s\n' "  7. Use /review-memory [scope] to force a broader stale-memory review"
 printf '%s\n' "You can rerun this same bootstrap command later to refresh managed AGENTS.md instructions."
 printf '%s\n' "Saved notes under docs/ai-memory/ stay intact unless you use --force."
 EOF_OPENCODE_MEMORY_KIT_SCRIPTS_BOOTSTRAP_PROJECT_SH
@@ -667,6 +740,7 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 - Durable memory is for the repo's long-lived truth, not for temporary task handoffs.
 - Use `docs/ai-memory/INDEX.md` as the entry point.
+- For the default maintenance checkpoint, use `/sync-memory [scope]`.
 - For explicit manual lookup, use `/recall-feature <query>`.
 - Memory is intentionally lazy-loaded. Do not read every file in `docs/ai-memory/` by default.
 - When a task mentions existing functionality, prior decisions, regressions, previous bugs, or continuing work from a past session:
@@ -682,11 +756,14 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 ### Updating Memory
 
-- After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
-- After a large refactor, feature removal, or cleanup pass, review stale memory with `/review-memory [scope]`.
+- Use `/sync-memory [scope]` as the default memory checkpoint after accepted work, before commit or PR when durable behavior changed, and after refactors, renames, or deletions.
+- Use `/remember-feature <kebab-case-slug>` when you want to force a focused feature-note refresh.
+- Use `/review-memory [scope]` when you want to force a broader stale-memory review.
+- Before final handoff on accepted code changes, either run `/sync-memory [scope]` or say explicitly that no durable memory update is needed.
 - `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
 - Only write durable memory when work is accepted or a real cleanup pass is happening.
-- `/remember-feature` and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
+- If the change is docs-only, formatting-only, or otherwise non-durable, say that no durable memory update is needed instead of forcing a note.
+- `/sync-memory`, `/remember-feature`, and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
 - Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
@@ -732,6 +809,7 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 - Durable memory is for the repo's long-lived truth, not for temporary task handoffs.
 - Use `docs/ai-memory/INDEX.md` as the entry point.
+- For the default maintenance checkpoint, use `/sync-memory [scope]`.
 - For explicit manual lookup, use `/recall-feature <query>`.
 - Memory is intentionally lazy-loaded. Do not read every file in `docs/ai-memory/` by default.
 - When a task mentions existing functionality, prior decisions, regressions, previous bugs, or continuing work from a past session:
@@ -747,11 +825,14 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 ### Updating Memory
 
-- After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
-- After a large refactor, feature removal, or cleanup pass, review stale memory with `/review-memory [scope]`.
+- Use `/sync-memory [scope]` as the default memory checkpoint after accepted work, before commit or PR when durable behavior changed, and after refactors, renames, or deletions.
+- Use `/remember-feature <kebab-case-slug>` when you want to force a focused feature-note refresh.
+- Use `/review-memory [scope]` when you want to force a broader stale-memory review.
+- Before final handoff on accepted code changes, either run `/sync-memory [scope]` or say explicitly that no durable memory update is needed.
 - `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
 - Only write durable memory when work is accepted or a real cleanup pass is happening.
-- `/remember-feature` and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
+- If the change is docs-only, formatting-only, or otherwise non-durable, say that no durable memory update is needed instead of forcing a note.
+- `/sync-memory`, `/remember-feature`, and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
 - Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
@@ -780,8 +861,10 @@ It should describe the current truth of the repo. Historical context lives in Gi
 ## How to use this memory
 
 - Start here when a task depends on prior project work.
+- For default upkeep in OpenCode, run `/sync-memory [scope]`.
 - For manual lookup in OpenCode, run `/recall-feature <query>`.
-- For cleanup after refactors or removals, run `/review-memory [scope]`.
+- To force a focused feature refresh, run `/remember-feature <slug>`.
+- For forced cleanup after refactors or removals, run `/review-memory [scope]`.
 - Search this directory by feature name, file path, module name, tag, or exact error text.
 - Read only the matching notes.
 - Rewrite or trim stale notes in place, and review deletions before removing obsolete notes from the active tree.
@@ -873,7 +956,8 @@ printf '%s\n' "  - agents/"
 printf '%s\n' "  - commands/"
 printf '%s\n' "  - opencode-memory-kit/"
 printf '\n'
-printf '%s\n' "Commands now available: /remember-feature, /recall-feature, and /review-memory"
+printf '%s\n' "Commands now available: /sync-memory, /remember-feature, /recall-feature, and /review-memory"
+printf '%s\n' "Default memory checkpoint: /sync-memory [scope]"
 printf '%s\n' "Bootstrap or refresh a repo with:"
 printf '%s\n' "  sh \"$bootstrap_path\" ."
 printf '%s\n' "Rerun the same bootstrap command later to refresh managed instructions without overwriting saved memory notes."

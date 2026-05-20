@@ -24,6 +24,7 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 - Durable memory is for the repo's long-lived truth, not for temporary task handoffs.
 - Use `docs/ai-memory/INDEX.md` as the entry point.
+- For the default maintenance checkpoint, use `/sync-memory [scope]`.
 - For explicit manual lookup, use `/recall-feature <query>`.
 - Memory is intentionally lazy-loaded. Do not read every file in `docs/ai-memory/` by default.
 - When a task mentions existing functionality, prior decisions, regressions, previous bugs, or continuing work from a past session:
@@ -39,11 +40,14 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 ### Updating Memory
 
-- After a feature is implemented, iterated on, and accepted, persist durable context with `/remember-feature <kebab-case-slug>`.
-- After a large refactor, feature removal, or cleanup pass, review stale memory with `/review-memory [scope]`.
+- Use `/sync-memory [scope]` as the default memory checkpoint after accepted work, before commit or PR when durable behavior changed, and after refactors, renames, or deletions.
+- Use `/remember-feature <kebab-case-slug>` when you want to force a focused feature-note refresh.
+- Use `/review-memory [scope]` when you want to force a broader stale-memory review.
+- Before final handoff on accepted code changes, either run `/sync-memory [scope]` or say explicitly that no durable memory update is needed.
 - `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
 - Only write durable memory when work is accepted or a real cleanup pass is happening.
-- `/remember-feature` and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
+- If the change is docs-only, formatting-only, or otherwise non-durable, say that no durable memory update is needed instead of forcing a note.
+- `/sync-memory`, `/remember-feature`, and `/review-memory` may automatically rewrite or trim stale notes when confidence is high.
 - Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
