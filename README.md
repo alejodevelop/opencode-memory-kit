@@ -166,10 +166,11 @@ Safe rerun behavior:
 1. Bootstrap the repo once.
 2. Work normally with `plan` and `build`.
 3. Let OpenCode use `explore` for broad reading and `general` for multi-step execution so the main session stays compact.
-4. After accepted work, and before commit or PR when durable behavior changed, run `/sync-memory [scope]`.
-5. In later sessions, run `/recall-feature <query>`.
-6. Use `/remember-feature <slug>` when you want to force a focused feature-note refresh.
-7. After large refactors, removals, or cleanup passes, use `/review-memory [scope]` when you want to force a broader stale-memory review.
+4. After accepted work when durable repo truth changed, run `/sync-memory [scope]`.
+5. If the project uses OpenSpec or another spec workflow, run `/sync-memory [scope]` after each spec archive for accepted work, or say explicitly that no durable memory update is needed.
+6. In later sessions, run `/recall-feature <query>`.
+7. Use `/remember-feature <slug>` when you want to force a focused feature-note refresh.
+8. After large refactors, removals, or cleanup passes, use `/review-memory [scope]` when you want to force a broader stale-memory review.
 
 Examples:
 
@@ -184,7 +185,7 @@ Examples:
 
 ## Default memory checkpoint
 
-Run `/sync-memory [scope]` after accepted work, before commit or PR when a change altered durable behavior, and after refactors or cleanup.
+Run `/sync-memory [scope]` after accepted work when a change altered durable repo truth, and after refactors or cleanup.
 
 It chooses one of three outcomes:
 
@@ -213,6 +214,14 @@ Use `/remember-feature` or `/review-memory` only when you want to force one of t
 - The main thread stays thin by delegating broad exploration and multi-step execution, then consuming compact handoffs.
 - The stored notes are short, searchable, and Git-tracked.
 - The active memory tree stays focused on current truth, while Git preserves history.
+
+## Spec-driven workflows
+
+This kit complements spec systems such as OpenSpec.
+
+- The active spec remains the source of truth for current requirements, planning, task tracking, and acceptance criteria.
+- `docs/ai-memory/` stores only durable repo knowledge worth carrying across sessions.
+- After a spec archive for accepted work, use `/sync-memory [scope]` to preserve the durable implementation delta without duplicating the spec.
 
 ## Notes
 

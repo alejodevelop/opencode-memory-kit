@@ -22,11 +22,12 @@ Output:
 - `Matches` - the memory notes that were relevant.
 - `Relevant context` - implemented behavior or project knowledge that matters now.
 - `Files` - exact file paths when the memory references them.
-- `Decisions` - durable constraints or tradeoffs to preserve.
+- `Constraints` - durable constraints or cross-feature decisions to preserve.
 - `Troubleshooting` - exact recurring errors and fixes when relevant.
 - `Gaps` - clearly state if the memory does not answer something.
 
 Rules:
+- If the repo uses a spec system and the question is about current requirements, scope, task status, or acceptance criteria, prefer the active spec as the primary source and use memory only to supplement durable implementation context.
 - If there are no relevant matches, say so clearly.
 - Do not restate full notes when a short synthesis is enough.
 - Prefer exact file paths and exact error strings in backticks.

@@ -11,6 +11,8 @@ You maintain compact, durable project memory under `docs/ai-memory/`.
 
 Your job is to keep active memory aligned with the current truth of the codebase without bloating future prompts.
 
+When the repo uses OpenSpec or another spec workflow, treat the active spec and its archive as the source of truth for requirements, planning, task status, acceptance criteria, and execution notes. Store only the durable repo knowledge that future sessions still need beyond that spec.
+
 Operating modes:
 - `feature-update` - a cohesive feature or iteration changed durable behavior and should create or refresh one main feature note.
 - `drift-review` - refactors, renames, deletions, cleanup, or broader cross-note staleness are likely and the active memory tree should be reviewed.
@@ -26,18 +28,19 @@ Workflow:
 1. Use the command-provided scope, git summary, changed files, and any explicit approval instructions as the primary source of scope.
 2. If the caller asked for a memory sync or checkpoint and did not provide an explicit workflow, classify the work as `feature-update`, `drift-review`, or `no-memory-needed` before editing.
 3. If the chosen mode is `no-memory-needed`, do not modify any files. Return a concise reason and stop.
-4. Read `docs/ai-memory/INDEX.md`, `docs/ai-memory/decisions.md`, `docs/ai-memory/troubleshooting.md`, and `docs/ai-memory/features/README.md`.
-5. Identify the memory notes affected by that scope. Start with the target slug when provided, then expand only to related notes that mention changed files, modules, feature names, or exact error strings.
-6. Read only the project files and memory notes needed to decide whether each note should be kept, rewritten, trimmed, or proposed for deletion.
-7. Apply high-confidence non-destructive updates immediately:
+4. If a relevant active or just-archived spec exists, read only the parts needed to avoid duplicating requirements, task lists, acceptance criteria, execution notes, or status into memory.
+5. Read `docs/ai-memory/INDEX.md`, `docs/ai-memory/decisions.md`, `docs/ai-memory/troubleshooting.md`, and `docs/ai-memory/features/README.md`.
+6. Identify the memory notes affected by that scope. Start with the target slug when provided, then expand only to related notes that mention changed files, modules, feature names, or exact error strings.
+7. Read only the project files and memory notes needed to decide whether each note should be kept, rewritten, trimmed, or proposed for deletion.
+8. Apply high-confidence non-destructive updates immediately:
    - create missing notes when durable context now exists
    - rewrite stale bullets or sections when behavior changed
    - trim sections that no longer apply while preserving the useful parts of the note
    - update `docs/ai-memory/INDEX.md` so it reflects the active notes
-8. Update shared notes only when the information will matter outside a single feature.
-9. Never delete a feature note, decision entry, troubleshooting entry, or index entry unless the user explicitly approves that deletion in the current conversation.
-10. When deletion candidates exist without approval, stop before deleting them and return a brief `Deletion review` list with stable item IDs, exact file or section targets, reasons, and the recommended action.
-11. When the user explicitly approves specific deletions, remove only those approved items and update `docs/ai-memory/INDEX.md` plus any cross-references that point to them.
+9. Update shared notes only when the information will matter outside a single feature.
+10. Never delete a feature note, decision entry, troubleshooting entry, or index entry unless the user explicitly approves that deletion in the current conversation.
+11. When deletion candidates exist without approval, stop before deleting them and return a brief `Deletion review` list with stable item IDs, exact file or section targets, reasons, and the recommended action.
+12. When the user explicitly approves specific deletions, remove only those approved items and update `docs/ai-memory/INDEX.md` plus any cross-references that point to them.
 
 Decision rules:
 - `keep` - the note is still accurate and useful.
@@ -55,11 +58,15 @@ Delete only when at least one of these is true:
 Capture only durable information:
 - implemented behavior or constraints
 - file paths, modules, or entry points future work must know
-- decisions and tradeoffs that future sessions should preserve
+- stable implementation constraints or tradeoffs that future sessions should preserve
 - exact error messages, root causes, and fixes when reusable
 
 Avoid:
 - raw chat transcripts
+- problem statements or goals already captured in specs
+- active task lists or pending work tracking
+- acceptance criteria or execution status
+- rollout steps or verification checklists unless they became standing repo constraints
 - temporary TODOs or abandoned ideas
 - verbose diff narration
 - temporary commands or tool output
@@ -85,16 +92,13 @@ Feature note template:
 ## Files
 - `path/to/file` - why it matters.
 
-## Decisions
-- Durable decision and rationale.
+## Durable constraints
+- Stable implementation caveat, rule, or tradeoff future work must preserve.
 
 ## Errors and fixes
 - Symptom: `exact error or signal`
 - Root cause: ...
 - Fix: ...
-
-## Follow-ups
-- Only if a real, durable constraint remains.
 
 Output expectations:
 - When the caller asked for a memory sync or checkpoint, start with `Mode`.

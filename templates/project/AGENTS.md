@@ -5,6 +5,7 @@
 
 Use OpenCode's built-in `plan` and `build` agents as the main conversation thread.
 
+- If the repo uses OpenSpec or another spec workflow, let the active spec drive current scope, sequencing, and completion criteria. Use the guidance here to keep execution compact, not to replace the spec.
 - Keep the main thread thin: clarify the goal, choose the next move, delegate broader work, and return with a short synthesis.
 - Prefer the built-in `explore` subagent for codebase search, reading 4+ files, understanding architecture, tracing behavior, or comparing options.
 - Prefer the built-in `general` subagent for multi-step execution, multi-file changes, tests, builds, and non-trivial bash.
@@ -29,6 +30,7 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - For the default maintenance checkpoint, use `/sync-memory [scope]`.
 - For explicit manual lookup, use `/recall-feature <query>`.
 - Memory is intentionally lazy-loaded. Do not read every file in `docs/ai-memory/` by default.
+- If the repo uses OpenSpec or another spec workflow, read the active spec first for current requirements, scope, and status. Use memory only to supplement durable implementation context.
 - When a task mentions existing functionality, prior decisions, regressions, previous bugs, or continuing work from a past session:
   1. Read `docs/ai-memory/INDEX.md`.
   2. Use `grep` on `docs/ai-memory/**/*.md` for relevant feature names, file paths, tags, and error strings.
@@ -42,10 +44,11 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 
 ### Updating Memory
 
-- Use `/sync-memory [scope]` as the default memory checkpoint after accepted work, before commit or PR when durable behavior changed, and after refactors, renames, or deletions.
+- Use `/sync-memory [scope]` as the default memory checkpoint after accepted changes when durable repo truth changed, and after refactors, renames, or deletions.
+- If the repo uses OpenSpec or another spec workflow, after each spec archive for accepted work, run `/sync-memory [scope]` or say explicitly that no durable memory update is needed.
 - Use `/remember-feature <kebab-case-slug>` when you want to force a focused feature-note refresh.
 - Use `/review-memory [scope]` when you want to force a broader stale-memory review.
-- Before final handoff on accepted code changes, either run `/sync-memory [scope]` or say explicitly that no durable memory update is needed.
+- When accepted work finishes, either run `/sync-memory [scope]` or say explicitly that no durable memory update is needed.
 - `docs/ai-memory/` should represent the current truth of the repo, not a historical archive.
 - Only write durable memory when work is accepted or a real cleanup pass is happening.
 - If the change is docs-only, formatting-only, or otherwise non-durable, say that no durable memory update is needed instead of forcing a note.
@@ -54,9 +57,9 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
   - important files or modules touched
-  - decisions that future work must respect
+  - stable implementation constraints or tradeoffs future work must respect
   - reusable debugging knowledge
-- Do not store raw conversation logs, temporary speculation, large diff narration, or subagent handoff notes.
+- Do not store raw conversation logs, temporary speculation, large diff narration, subagent handoff notes, problem statements, goals, non-goals, task lists, acceptance criteria, rollout plans, or current status when those already belong to the spec system.
 
 ### Memory Quality Bar
 

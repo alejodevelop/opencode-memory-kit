@@ -1,6 +1,6 @@
 # Feature Notes
 
-Create one file per accepted feature using a kebab-case slug.
+Create one file per accepted feature or durable implementation area using a kebab-case slug.
 
 ## When to create a feature note
 
@@ -9,7 +9,7 @@ Create one file per accepted feature using a kebab-case slug.
 
 ## Lifecycle
 
-- Treat each feature note as the canonical record for the current state of that feature.
+- Treat each feature note as a durable memory supplement for the current implementation state of that feature, not as the source of truth for active planning or delivery status.
 - Rewrite the note in place when behavior changes.
 - Trim sections that became stale while keeping the useful parts.
 - Delete the file when the feature is removed, absorbed, or no longer carries durable value.
@@ -21,8 +21,7 @@ Create one file per accepted feature using a kebab-case slug.
 - `# <Feature Title>`
 - `## Summary`
 - `## Files`
-- `## Decisions`
+- `## Durable constraints`
 - `## Errors and fixes`
-- `## Follow-ups`
 
-Record durable knowledge only. Avoid raw diff summaries and transient chat context.
+Record durable knowledge only. Avoid raw diff summaries, transient chat context, active task lists, acceptance criteria, rollout plans, and status tracking already covered by specs.
