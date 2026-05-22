@@ -40,6 +40,11 @@ copy_managed_file() {
     return
   fi
 
+  if [ -f "$destination" ] && cmp -s "$source_path" "$destination"; then
+    printf '%s\n' "Already up to date $destination"
+    return
+  fi
+
   if [ -f "$destination" ]; then
     cp "$source_path" "$destination"
     printf '%s\n' "Updated $destination"
@@ -65,7 +70,11 @@ find "$repo_root/templates" -type f | sort | while IFS= read -r source_path; do
   copy_managed_file "$source_path" "$destination"
 done
 
-find "$repo_root/scripts" -type f ! -path '*/__pycache__/*' ! -name '*.pyc' | sort | while IFS= read -r source_path; do
+for source_path in "$repo_root/scripts/bootstrap-project.ps1" "$repo_root/scripts/bootstrap-project.sh"; do
+  if [ ! -f "$source_path" ]; then
+    continue
+  fi
+
   relative_path=${source_path#"$repo_root/"}
   destination="$kit_home/$relative_path"
   copy_managed_file "$source_path" "$destination"

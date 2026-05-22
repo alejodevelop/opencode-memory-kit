@@ -9,6 +9,19 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
 $kitHome = Join-Path $ConfigDir "opencode-memory-kit"
 
+function Test-FileContentEqual {
+    param(
+        [string]$LeftPath,
+        [string]$RightPath
+    )
+
+    if (-not (Test-Path $LeftPath) -or -not (Test-Path $RightPath)) {
+        return $false
+    }
+
+    return (Get-FileHash -LiteralPath $LeftPath).Hash -eq (Get-FileHash -LiteralPath $RightPath).Hash
+}
+
 function Copy-ManagedFile {
     param(
         [string]$Source,
@@ -24,6 +37,11 @@ function Copy-ManagedFile {
     $exists = Test-Path $Destination
     if ($exists -and -not $ForceCopy) {
         Write-Host "Skipped $Destination"
+        return
+    }
+
+    if ($exists -and (Test-FileContentEqual -LeftPath $Source -RightPath $Destination)) {
+        Write-Host "Already up to date $Destination"
         return
     }
 
@@ -52,12 +70,15 @@ Get-ChildItem -File -Recurse (Join-Path $repoRoot "templates") | ForEach-Object 
     Copy-ManagedFile -Source $_.FullName -Destination $destination -ForceCopy:$Force
 }
 
-Get-ChildItem -File -Recurse (Join-Path $repoRoot "scripts") | Where-Object {
-    $_.FullName -notmatch "[\\/]__pycache__[\\/]" -and $_.Extension -ne ".pyc"
-} | ForEach-Object {
-    $relativePath = $_.FullName.Substring($repoRoot.Length + 1)
+$runtimeScripts = @(
+    Join-Path $repoRoot "scripts\bootstrap-project.ps1"
+    Join-Path $repoRoot "scripts\bootstrap-project.sh"
+)
+
+$runtimeScripts | Where-Object { Test-Path $_ } | ForEach-Object {
+    $relativePath = $_.Substring($repoRoot.Length + 1)
     $destination = Join-Path $kitHome $relativePath
-    Copy-ManagedFile -Source $_.FullName -Destination $destination -ForceCopy:$Force
+    Copy-ManagedFile -Source $_ -Destination $destination -ForceCopy:$Force
 }
 
 Write-Host ""

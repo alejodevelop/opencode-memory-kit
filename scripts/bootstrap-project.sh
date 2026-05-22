@@ -163,6 +163,11 @@ find "$docs_template_root" -type f | sort | while IFS= read -r source_path; do
     continue
   fi
 
+  if [ -f "$destination" ] && cmp -s "$source_path" "$destination"; then
+    printf '%s\n' "Already up to date $relative_path"
+    continue
+  fi
+
   if [ -f "$destination" ]; then
     cp "$source_path" "$destination"
     printf '%s\n' "Updated $relative_path"

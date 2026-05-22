@@ -38,6 +38,19 @@ function Convert-Newlines {
     return (($Content -replace "`r`n", "`n") -replace "`n", $Newline)
 }
 
+function Test-FileContentEqual {
+    param(
+        [string]$LeftPath,
+        [string]$RightPath
+    )
+
+    if (-not (Test-Path $LeftPath) -or -not (Test-Path $RightPath)) {
+        return $false
+    }
+
+    return (Get-FileHash -LiteralPath $LeftPath).Hash -eq (Get-FileHash -LiteralPath $RightPath).Hash
+}
+
 function Sync-ManagedAgentsBlock {
     param(
         [string]$Path,
@@ -127,6 +140,10 @@ Get-ChildItem -File -Recurse $docsTemplateRoot | ForEach-Object {
     $exists = Test-Path $destination
     if ($exists -and -not $Force) {
         Write-Host "Skipped $relativePath"
+    }
+
+    elseif ($exists -and (Test-FileContentEqual -LeftPath $sourcePath -RightPath $destination)) {
+        Write-Host "Already up to date $relativePath"
     }
 
     else {
