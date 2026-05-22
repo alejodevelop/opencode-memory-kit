@@ -38,6 +38,15 @@ function Convert-Newlines {
     return (($Content -replace "`r`n", "`n") -replace "`n", $Newline)
 }
 
+function New-FullAgentsContent {
+    param(
+        [string]$ManagedBlockPath
+    )
+
+    $managedBlock = [System.IO.File]::ReadAllText($ManagedBlockPath)
+    return "# Project Instructions`n`n$managedBlock"
+}
+
 function Test-FileContentEqual {
     param(
         [string]$LeftPath,
@@ -109,8 +118,7 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repoRoot = Split-Path -Parent $scriptDir
 $templateRoot = Join-Path $repoRoot "templates\project"
 $docsTemplateRoot = Join-Path $templateRoot "docs"
-$fullAgentsTemplate = Join-Path $templateRoot "AGENTS.md"
-$appendAgentsTemplate = Join-Path $templateRoot "AGENTS.memory.md"
+$managedAgentsTemplate = Join-Path $templateRoot "AGENTS.memory.md"
 
 if (-not (Test-Path -Path $Target -PathType Container)) {
     throw "Target directory does not exist: $Target"
@@ -120,10 +128,10 @@ $resolvedTarget = (Resolve-Path $Target).Path
 $targetAgents = Join-Path $resolvedTarget "AGENTS.md"
 
 if (Test-Path $targetAgents) {
-    Sync-ManagedAgentsBlock -Path $targetAgents -ManagedBlockPath $appendAgentsTemplate -StartMarker $startMarker -EndMarker $endMarker
+    Sync-ManagedAgentsBlock -Path $targetAgents -ManagedBlockPath $managedAgentsTemplate -StartMarker $startMarker -EndMarker $endMarker
 }
 else {
-    Copy-Item $fullAgentsTemplate $targetAgents
+    Write-Utf8NoBomFile -Path $targetAgents -Content (New-FullAgentsContent -ManagedBlockPath $managedAgentsTemplate)
     Write-Host "Created AGENTS.md"
 }
 

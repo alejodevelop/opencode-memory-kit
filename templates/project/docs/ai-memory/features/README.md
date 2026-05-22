@@ -11,10 +11,8 @@ Create one file per accepted feature or durable implementation area using a keba
 
 - Treat each feature note as a durable memory supplement for the current implementation state of that feature, not as the source of truth for active planning or delivery status.
 - Rewrite the note in place when behavior changes.
-- Trim sections that became stale while keeping the useful parts.
-- Delete the file when the feature is removed, absorbed, or no longer carries durable value.
-- Do not archive obsolete feature notes under `docs/ai-memory/`; rely on Git history instead.
-- Deletions require a brief review before removal.
+- Trim stale sections and delete the file when it no longer carries durable value.
+- Use Git history for obsolete feature history.
 
 ## Recommended structure
 

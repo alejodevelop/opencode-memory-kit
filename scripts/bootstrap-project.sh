@@ -26,8 +26,16 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(dirname "$script_dir")
 template_root="$repo_root/templates/project"
 docs_template_root="$template_root/docs"
-full_agents_template="$template_root/AGENTS.md"
-append_agents_template="$template_root/AGENTS.memory.md"
+managed_agents_template="$template_root/AGENTS.memory.md"
+
+create_agents_file() {
+  file_path="$1"
+  {
+    printf '%s\n\n' "# Project Instructions"
+    cat "$managed_agents_template"
+  } > "$file_path"
+  printf '%s\n' "Created AGENTS.md"
+}
 
 sync_agents_file() {
   file_path="$1"
@@ -61,7 +69,7 @@ sync_agents_file() {
   tmp_file=$(mktemp)
 
   if [ "$sync_mode" = "replace" ]; then
-    awk -v use_crlf="$use_crlf" -v start="$start_marker" -v end="$end_marker" -v replacement="$append_agents_template" '
+    awk -v use_crlf="$use_crlf" -v start="$start_marker" -v end="$end_marker" -v replacement="$managed_agents_template" '
       BEGIN {
         ORS = (use_crlf == "1") ? "\r\n" : "\n"
       }
@@ -94,7 +102,7 @@ sync_agents_file() {
       }
     ' "$file_path" > "$tmp_file"
   else
-    awk -v use_crlf="$use_crlf" -v replacement="$append_agents_template" '
+    awk -v use_crlf="$use_crlf" -v replacement="$managed_agents_template" '
       BEGIN {
         ORS = (use_crlf == "1") ? "\r\n" : "\n"
       }
@@ -147,8 +155,7 @@ target_agents="$target/AGENTS.md"
 if [ -f "$target_agents" ]; then
   sync_agents_file "$target_agents"
 else
-  cp "$full_agents_template" "$target_agents"
-  printf '%s\n' "Created AGENTS.md"
+  create_agents_file "$target_agents"
 fi
 
 find "$docs_template_root" -type f | sort | while IFS= read -r source_path; do

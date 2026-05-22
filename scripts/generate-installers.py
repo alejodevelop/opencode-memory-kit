@@ -21,7 +21,6 @@ ASSETS = [
         "scripts/bootstrap-project.sh",
         "opencode-memory-kit/scripts/bootstrap-project.sh",
     ),
-    ("templates/project/AGENTS.md", "opencode-memory-kit/templates/project/AGENTS.md"),
     (
         "templates/project/AGENTS.memory.md",
         "opencode-memory-kit/templates/project/AGENTS.memory.md",
