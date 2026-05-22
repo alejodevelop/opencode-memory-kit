@@ -10,6 +10,7 @@ Create one file per accepted feature or durable implementation area using a keba
 ## Lifecycle
 
 - Treat each feature note as a durable memory supplement for the current implementation state of that feature, not as the source of truth for active planning or delivery status.
+- Keep repo-wide product direction in `../product-vision.md` instead of duplicating it across feature notes.
 - Rewrite the note in place when behavior changes.
 - Trim stale sections and delete the file when it no longer carries durable value.
 - Use Git history for obsolete feature history.

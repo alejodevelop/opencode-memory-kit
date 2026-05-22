@@ -29,11 +29,12 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - For explicit manual lookup, use `/recall-feature <query>`.
 - Memory is intentionally lazy-loaded. Do not read every file in `docs/ai-memory/` by default.
 - If the repo uses OpenSpec or another spec workflow, read the active spec first for current requirements, scope, and status. Use memory only to supplement durable implementation context.
-- When a task mentions existing functionality, prior decisions, regressions, previous bugs, or continuing work from a past session:
+- When a task mentions existing functionality, prior decisions, product direction, feature fit, regressions, previous bugs, or continuing work from a past session:
   1. Read `docs/ai-memory/INDEX.md`.
   2. Use `grep` on `docs/ai-memory/**/*.md` for relevant feature names, file paths, tags, and error strings.
   3. Read only the matching notes.
 - Prefer `docs/ai-memory/features/*.md` for feature-specific implementation context.
+- Prefer `docs/ai-memory/product-vision.md` for durable product direction, target outcomes, and stable product principles.
 - Prefer `docs/ai-memory/decisions.md` for durable cross-feature decisions and constraints.
 - Prefer `docs/ai-memory/troubleshooting.md` for recurring errors, exact messages, root causes, and fixes.
 - If previous work matters for a delegated task, look up the relevant memory first and pass only the useful summary or exact note paths to the subagent.
@@ -54,6 +55,7 @@ This project uses a durable AI memory layer stored in `docs/ai-memory/`.
 - Deletions from the active memory tree require a brief review before removal.
 - The memory update should capture only long-lived project knowledge:
   - relevant behavior now implemented
+  - enduring product direction or product principles future work should align with
   - important files or modules touched
   - stable implementation constraints or tradeoffs future work must respect
   - reusable debugging knowledge

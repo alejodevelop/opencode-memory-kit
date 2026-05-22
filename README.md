@@ -29,6 +29,7 @@ Project bootstrap files:
 
 - `AGENTS.md`
 - `docs/ai-memory/INDEX.md`
+- `docs/ai-memory/product-vision.md`
 - `docs/ai-memory/decisions.md`
 - `docs/ai-memory/troubleshooting.md`
 - `docs/ai-memory/features/README.md`

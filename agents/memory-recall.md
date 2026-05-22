@@ -28,6 +28,7 @@ Output:
 
 Rules:
 - If the repo uses a spec system and the question is about current requirements, scope, task status, or acceptance criteria, prefer the active spec as the primary source and use memory only to supplement durable implementation context.
+- If the query is about product direction, intended outcomes, feature fit, prioritization principles, or what the product should become, check `docs/ai-memory/product-vision.md` alongside any matching shared or feature notes.
 - If there are no relevant matches, say so clearly.
 - Do not restate full notes when a short synthesis is enough.
 - Prefer exact file paths and exact error strings in backticks.
